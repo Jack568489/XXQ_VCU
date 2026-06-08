@@ -1,0 +1,28 @@
+--cpu Cortex-M3
+"xxq_vcu\startup_stm32f105xc.o"
+"xxq_vcu\main.o"
+"xxq_vcu\gpio.o"
+"xxq_vcu\tim.o"
+"xxq_vcu\stm32f1xx_it.o"
+"xxq_vcu\stm32f1xx_hal_msp.o"
+"xxq_vcu\stm32f1xx_hal_gpio_ex.o"
+"xxq_vcu\stm32f1xx_hal_tim.o"
+"xxq_vcu\stm32f1xx_hal_tim_ex.o"
+"xxq_vcu\stm32f1xx_hal.o"
+"xxq_vcu\stm32f1xx_hal_rcc.o"
+"xxq_vcu\stm32f1xx_hal_rcc_ex.o"
+"xxq_vcu\stm32f1xx_hal_gpio.o"
+"xxq_vcu\stm32f1xx_hal_dma.o"
+"xxq_vcu\stm32f1xx_hal_cortex.o"
+"xxq_vcu\stm32f1xx_hal_pwr.o"
+"xxq_vcu\stm32f1xx_hal_flash.o"
+"xxq_vcu\stm32f1xx_hal_flash_ex.o"
+"xxq_vcu\stm32f1xx_hal_exti.o"
+"xxq_vcu\system_stm32f1xx.o"
+"xxq_vcu\beep.o"
+"xxq_vcu\led.o"
+"xxq_vcu\tick.o"
+--strict --scatter "XXQ_VCU\XXQ_VCU.sct"
+--summary_stderr --info summarysizes --map --load_addr_map_info --xref --callgraph --symbols
+--info sizes --info totals --info unused --info veneers
+--list "XXQ_VCU.map" -o XXQ_VCU\XXQ_VCU.axf
