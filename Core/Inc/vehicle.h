@@ -51,14 +51,22 @@ void Vehicle_LED1_Blink(void);
 
 /**
   * @brief  档位切换检测 (主循环每次迭代调用)
-  * @note   P→D条件: 档位开关闭合(TS_ACT=低) 且 刹车值>10
-  *         进入D档时点亮LAMP并驱动蜂鸣器
+  * @note   严格时序要求: 必须先踩下制动踏板(brake>10%),
+  *         保持刹车的同时按下档位开关才能进入D档.
+  *         松开刹车后需重新执行上述序列.
   */
 void Vehicle_GearShiftCheck(void);
 
 /**
+  * @brief  制动灯控制 (主循环每次迭代调用)
+  * @note   踩下制动踏板(brake > 5%)点亮制动灯,
+  *         松开(brake < 2%)熄灭, 滞回区间防抖
+  */
+void Vehicle_BrakeLightCheck(void);
+
+/**
   * @brief  档位状态机计时 (每秒调用一次)
-  * @note   进入D档后蜂鸣器持续3秒自动关闭, LAMP保持点亮
+  * @note   进入D档后蜂鸣器持续3秒自动关闭
   */
 void Vehicle_GearTick(void);
 
