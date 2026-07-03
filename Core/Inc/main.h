@@ -61,6 +61,14 @@ void Error_Handler(void);
 #define TIM_ARR 10-1
 #define TS_ACT_EXT_DET_Pin GPIO_PIN_2
 #define TS_ACT_EXT_DET_GPIO_Port GPIOE
+#define VCC_AD_Pin GPIO_PIN_0
+#define VCC_AD_GPIO_Port GPIOC
+#define OIL_PRE_F_AD_Pin GPIO_PIN_2
+#define OIL_PRE_F_AD_GPIO_Port GPIOC
+#define OIL_PRE_R_AD_Pin GPIO_PIN_3
+#define OIL_PRE_R_AD_GPIO_Port GPIOC
+#define ADC14_Pin GPIO_PIN_4
+#define ADC14_GPIO_Port GPIOC
 #define LAMP_Pin GPIO_PIN_8
 #define LAMP_GPIO_Port GPIOD
 #define HORN_CTL_Pin GPIO_PIN_7
