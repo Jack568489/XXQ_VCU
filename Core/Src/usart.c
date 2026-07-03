@@ -84,7 +84,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef* uartHandle)
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
     /* USART1 interrupt Init */
-    HAL_NVIC_SetPriority(USART1_IRQn, 2, 0);
+    HAL_NVIC_SetPriority(USART1_IRQn, 15, 0);
     HAL_NVIC_EnableIRQ(USART1_IRQn);
   /* USER CODE BEGIN USART1_MspInit 1 */
 
@@ -120,9 +120,9 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* uartHandle)
 /* USER CODE BEGIN 1 */
 
 /**
-  * @brief  通过USART1发送数据 (阻塞方式)
-  * @param  pData: 发送数据缓冲区指针
-  * @param  Size:  发送数据字节数
+  * @brief  通过USART1发�?�数�? (阻塞方式)
+  * @param  pData: 发�?�数据缓冲区指针
+  * @param  Size:  发�?�数据字节数
   * @retval None
   */
 void UART1_Send(uint8_t *pData, uint16_t Size)

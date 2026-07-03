@@ -21,6 +21,7 @@ xxq_vcu\main.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_gpio_ex.h
 xxq_vcu\main.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_exti.h
 xxq_vcu\main.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_dma.h
 xxq_vcu\main.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_dma_ex.h
+xxq_vcu\main.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_can.h
 xxq_vcu\main.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_cortex.h
 xxq_vcu\main.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_adc.h
 xxq_vcu\main.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_adc_ex.h
@@ -31,6 +32,7 @@ xxq_vcu\main.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_tim.h
 xxq_vcu\main.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_tim_ex.h
 xxq_vcu\main.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_uart.h
 xxq_vcu\main.o: ../Core/Inc/adc.h
+xxq_vcu\main.o: ../Core/Inc/can.h
 xxq_vcu\main.o: ../Core/Inc/dma.h
 xxq_vcu\main.o: ../Core/Inc/tim.h
 xxq_vcu\main.o: ../Core/Inc/usart.h

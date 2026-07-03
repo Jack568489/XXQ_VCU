@@ -19,6 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "adc.h"
+#include "can.h"
 #include "dma.h"
 #include "tim.h"
 #include "usart.h"
@@ -74,8 +75,20 @@ int main(void)
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
+
+  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   HAL_Init();
+
+  /* USER CODE BEGIN Init */
+
+  /* USER CODE END Init */
+
+  /* Configure the system clock */
   SystemClock_Config();
+
+  /* USER CODE BEGIN SysInit */
+
+  /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
@@ -83,11 +96,13 @@ int main(void)
   MX_TIM3_Init();
   MX_ADC1_Init();
   MX_USART1_UART_Init();
-
+  MX_CAN1_Init();
+  MX_CAN2_Init();
   /* USER CODE BEGIN 2 */
   tick_init();              /* 启动1ms时基 */
   ADC_StartDMA();           /* 启动ADC DMA连续采样 */
   Vehicle_Init();           /* 整车控制初始化 (执行器置安全状态) */
+  CAN_TestInit();           /* CAN环回测试初始化 (滤波器+启动+中断使能) */
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -98,7 +113,7 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
     /*=================================================================
-     * 传感器数据处理 (每次循环更新, 转换原始值->物理量)
+     * 传感器数据处�? (每次循环更新, 转换原始�?->物理�?)
      *=================================================================*/
     ADC_ProcessSensorData(NULL);
 
@@ -119,12 +134,13 @@ int main(void)
         time_flag.bit_field.time_1000ms_flag = 0;
         Vehicle_GearTick();             /* 档位状态机计时 (蜂鸣器超时) */
         Vehicle_SensorReport();         /* UART遥测上报 */
+        CAN_TestSendMessage();          /* CAN环回测试: 每秒发送一帧并自收验证 */
     }
 
     /*=================================================================
      * 连续任务 (每次循环执行)
      *=================================================================*/
-    Vehicle_GearShiftCheck();           /* 档位切换检测 (P→D) */
+    Vehicle_GearShiftCheck();           /* 档位切换�?�? (P→D) */
   }
   /* USER CODE END 3 */
 }
@@ -191,10 +207,13 @@ void SystemClock_Config(void)
   */
 void Error_Handler(void)
 {
+  /* USER CODE BEGIN Error_Handler_Debug */
+  /* User can add his own implementation to report the HAL error return state */
   __disable_irq();
   while (1)
   {
   }
+  /* USER CODE END Error_Handler_Debug */
 }
 
 #ifdef  USE_FULL_ASSERT
