@@ -32,5 +32,6 @@ xxq_vcu\can.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_pwr.h
 xxq_vcu\can.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_tim.h
 xxq_vcu\can.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_tim_ex.h
 xxq_vcu\can.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_uart.h
-xxq_vcu\can.o: ../Core/Inc/usart.h
-xxq_vcu\can.o: D:\Keil5\ARM\ARMCC\Bin\..\include\stdio.h
+xxq_vcu\can.o: ../Core/Inc/adc.h
+xxq_vcu\can.o: ../Core/Inc/vehicle.h
+xxq_vcu\can.o: ../Core/Inc/dmcu.h

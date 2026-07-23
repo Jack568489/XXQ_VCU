@@ -33,9 +33,10 @@ xxq_vcu\main.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_tim_ex.h
 xxq_vcu\main.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_uart.h
 xxq_vcu\main.o: ../Core/Inc/adc.h
 xxq_vcu\main.o: ../Core/Inc/can.h
+xxq_vcu\main.o: ../Core/Inc/vehicle.h
 xxq_vcu\main.o: ../Core/Inc/dma.h
 xxq_vcu\main.o: ../Core/Inc/tim.h
 xxq_vcu\main.o: ../Core/Inc/usart.h
 xxq_vcu\main.o: ../Core/Inc/gpio.h
 xxq_vcu\main.o: ../Drivers/BSP/tick/tick.h
-xxq_vcu\main.o: ../Core/Inc/vehicle.h
+xxq_vcu\main.o: ../Core/Inc/dmcu.h

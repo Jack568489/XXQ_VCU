@@ -51,29 +51,35 @@ void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
 
-  /*Configure GPIO pin Output Level */
+  /* 制动灯初始: 熄灭 (低电平有效, SET=灭) */
   HAL_GPIO_WritePin(LAMP_GPIO_Port, LAMP_Pin, GPIO_PIN_SET);
 
-  /*Configure GPIO pin Output Level */
+  /* 蜂鸣器初始: 关闭 (高电平有效, RESET=关) */
   HAL_GPIO_WritePin(HORN_CTL_GPIO_Port, HORN_CTL_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pin Output Level */
+  /* LED1初始: 熄灭 (低电平有效, SET=灭) */
   HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_SET);
 
-  /*Configure GPIO pins : PEPin PEPin */
-  GPIO_InitStruct.Pin = TS_ACT_EXT_DET_Pin|TS_ACT_DET_Pin;
+  /* PE1: 档位开关, 上拉 (闭合=低电平) */
+  GPIO_InitStruct.Pin = TS_ACT_DET_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : PtPin */
+  /* PE2: 外部TS激活, 下拉 (高电平=激活) */
+  GPIO_InitStruct.Pin = TS_ACT_EXT_DET_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
+
+  /* PD11: 制动灯控制输出 (推挽, 低电平有效) */
   GPIO_InitStruct.Pin = LAMP_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(LAMP_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PBPin PBPin */
+  /* PB0: 蜂鸣器 | PB5: LED1 (推挽输出) */
   GPIO_InitStruct.Pin = HORN_CTL_Pin|LED1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;

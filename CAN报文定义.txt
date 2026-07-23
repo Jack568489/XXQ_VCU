@@ -1,0 +1,18 @@
+CAN1：
+VCU_INFO1（CAN ID = 0x011）
+data[0] mode(低4位)|gear(高2位) 状态+档位
+data[1] brake_signal 制动信号0/1
+data[2] accelerate_signal 油门百分比0~100
+data[3] speed 车速km/h
+data[4] steer_angle 低字节 转向角
+data[5] steer_angle 高字节 转向角
+data[6-7] 预留，未使用
+mode为VCU状态，值为(0~4)
+gear(档位)：Gear_P(0)，Gear_D(1)
+制动信号：若制动信号大于10则为1，否则为0
+speed：从左右电机控制器读取转速转换为车速
+发送左RPM的ID为0x203，右RPM的ID为0x204，报文指令均为8个字节： 00 00 00 00 00 00 **（其中 **为实际转速的高字节和低字节）。
+
+CAN2：VCU与左右MCU通信
+左电机ID为01，右电机ID为02，报文指令为3个字节： 
+01 ** **（其中01为电流控制方式，单位为10mA，**为电流高低字节）

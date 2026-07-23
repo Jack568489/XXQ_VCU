@@ -10,6 +10,7 @@
 "xxq_vcu\usart.o"
 "xxq_vcu\stm32f1xx_it.o"
 "xxq_vcu\stm32f1xx_hal_msp.o"
+"xxq_vcu\dmcu.o"
 "xxq_vcu\stm32f1xx_hal_gpio_ex.o"
 "xxq_vcu\stm32f1xx_hal_adc.o"
 "xxq_vcu\stm32f1xx_hal_adc_ex.o"

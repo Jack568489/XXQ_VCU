@@ -21,18 +21,14 @@
 #include "can.h"
 
 /* USER CODE BEGIN 0 */
-#include "usart.h"
-#include <stdio.h>
-
-/* CAN测试用变量 */
-static uint8_t can_test_tx_counter = 0;   /* 发送计数器, 每次发送自增, 用于观察数据变化 */
-
+#include "dmcu.h"
 /* USER CODE END 0 */
 
 CAN_HandleTypeDef hcan1;
 CAN_HandleTypeDef hcan2;
 
 /* CAN1 init function */
+/* 波特率: 36MHz / (6 * (8+3+1)) = 500kbps */
 void MX_CAN1_Init(void)
 {
 
@@ -45,7 +41,7 @@ void MX_CAN1_Init(void)
   /* USER CODE END CAN1_Init 1 */
   hcan1.Instance = CAN1;
   hcan1.Init.Prescaler = 6;
-  hcan1.Init.Mode = CAN_MODE_LOOPBACK;
+  hcan1.Init.Mode = CAN_MODE_NORMAL;
   hcan1.Init.SyncJumpWidth = CAN_SJW_1TQ;
   hcan1.Init.TimeSeg1 = CAN_BS1_8TQ;
   hcan1.Init.TimeSeg2 = CAN_BS2_3TQ;
@@ -65,6 +61,7 @@ void MX_CAN1_Init(void)
 
 }
 /* CAN2 init function */
+/* 波特率: 36MHz / (6 * (8+3+1)) = 500kbps */
 void MX_CAN2_Init(void)
 {
 
@@ -77,7 +74,7 @@ void MX_CAN2_Init(void)
   /* USER CODE END CAN2_Init 1 */
   hcan2.Instance = CAN2;
   hcan2.Init.Prescaler = 6;
-  hcan2.Init.Mode = CAN_MODE_LOOPBACK;
+  hcan2.Init.Mode = CAN_MODE_NORMAL;
   hcan2.Init.SyncJumpWidth = CAN_SJW_1TQ;
   hcan2.Init.TimeSeg1 = CAN_BS1_8TQ;
   hcan2.Init.TimeSeg2 = CAN_BS2_3TQ;
@@ -97,6 +94,7 @@ void MX_CAN2_Init(void)
 
 }
 
+/* CAN1和CAN2共享同一个时钟源, 使用引用计数管理时钟使能/关闭 */
 static uint32_t HAL_RCC_CAN1_CLK_ENABLED=0;
 
 void HAL_CAN_MspInit(CAN_HandleTypeDef* canHandle)
@@ -233,284 +231,91 @@ void HAL_CAN_MspDeInit(CAN_HandleTypeDef* canHandle)
 /* USER CODE BEGIN 1 */
 
 /**
-  * @brief  CAN环回测试初始化
-  *         配置滤波器接收所有报文, 启动CAN1/CAN2, 使能RX FIFO0中断通知
-  * @retval None
+  * @brief  CAN总线初始化
+  * @note   配置CAN1/CAN2滤波器为全通模式, 启动外设并使能FIFO0消息挂起中断
+  *         CAN1使用滤波器组0~13, CAN2使用滤波器组14~27
   */
-void CAN_TestInit(void)
+void CAN_Init(void)
 {
-    CAN_FilterTypeDef sFilterConfig;
+    CAN_FilterTypeDef f = {0};
+    f.FilterMode = CAN_FILTERMODE_IDMASK;
+    f.FilterScale = CAN_FILTERSCALE_32BIT;
+    f.FilterIdHigh = 0; f.FilterIdLow = 0;
+    f.FilterMaskIdHigh = 0; f.FilterMaskIdLow = 0;
+    f.FilterFIFOAssignment = CAN_FILTER_FIFO0;
+    f.FilterActivation = CAN_FILTER_ENABLE;
+    f.SlaveStartFilterBank = 14;
 
-    /* ==================== CAN1 滤波器配置 (Bank 0) ==================== */
-    sFilterConfig.FilterBank = 0;
-    sFilterConfig.FilterMode = CAN_FILTERMODE_IDMASK;       /* 掩码模式 */
-    sFilterConfig.FilterScale = CAN_FILTERSCALE_32BIT;      /* 32位滤波 */
-    sFilterConfig.FilterIdHigh = 0x0000;                    /* 不过滤任何ID */
-    sFilterConfig.FilterIdLow = 0x0000;
-    sFilterConfig.FilterMaskIdHigh = 0x0000;                /* 掩码全0, 所有ID都通过 */
-    sFilterConfig.FilterMaskIdLow = 0x0000;
-    sFilterConfig.FilterFIFOAssignment = CAN_FILTER_FIFO0;  /* 匹配的消息存入FIFO0 */
-    sFilterConfig.FilterActivation = CAN_FILTER_ENABLE;
-    sFilterConfig.SlaveStartFilterBank = 14;                /* Bank 0-13归CAN1, 14-27归CAN2 */
+    f.FilterBank = 0;
+    HAL_CAN_ConfigFilter(&hcan1, &f);
+    HAL_CAN_Start(&hcan1);
+    HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING);
 
-    if (HAL_CAN_ConfigFilter(&hcan1, &sFilterConfig) != HAL_OK)
-    {
-        Error_Handler();
-    }
-
-    /* 启动CAN1 */
-    if (HAL_CAN_Start(&hcan1) != HAL_OK)
-    {
-        Error_Handler();
-    }
-
-    /* 使能CAN1 RX FIFO0 消息挂起中断 + TX邮箱空中断通知 */
-    if (HAL_CAN_ActivateNotification(&hcan1,
-            CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_TX_MAILBOX_EMPTY) != HAL_OK)
-    {
-        Error_Handler();
-    }
-
-    /* ==================== CAN2 滤波器配置 (Bank 14) ==================== */
-    sFilterConfig.FilterBank = 14;
-    /* SlaveStartFilterBank 保持不变: 14 */
-    if (HAL_CAN_ConfigFilter(&hcan2, &sFilterConfig) != HAL_OK)
-    {
-        Error_Handler();
-    }
-
-    /* 启动CAN2 */
-    if (HAL_CAN_Start(&hcan2) != HAL_OK)
-    {
-        Error_Handler();
-    }
-
-    /* 使能CAN2 RX FIFO0 消息挂起中断 + TX邮箱空中断通知 */
-    if (HAL_CAN_ActivateNotification(&hcan2,
-            CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_TX_MAILBOX_EMPTY) != HAL_OK)
-    {
-        Error_Handler();
-    }
-
-    /* 打印初始化完成信息 */
-    char msg[] = "\r\n"
-                 "========== CAN Loopback Test Init OK ==========\r\n"
-                 "  CAN1: Loopback | 500kbps | StdId=0x123 | Bank 0\r\n"
-                 "  CAN2: Loopback | 500kbps | StdId=0x456 | Bank 14\r\n"
-                 "  Test sends CAN1 + CAN2 every 1000ms...\r\n"
-                 "==============================================\r\n\r\n";
-    UART1_Send((uint8_t *)msg, sizeof(msg) - 1);
+    f.FilterBank = 14;
+    HAL_CAN_ConfigFilter(&hcan2, &f);
+    HAL_CAN_Start(&hcan2);
+    HAL_CAN_ActivateNotification(&hcan2, CAN_IT_RX_FIFO0_MSG_PENDING);
 }
 
 /**
-  * @brief  发送CAN测试数据 (CAN1 + CAN2 各发一帧)
-  *         环回模式下每帧都会被自身立即接收, 通过串口观察收发是否一致
-  * @retval None
-  */
-void CAN_TestSendMessage(void)
-{
-    CAN_TxHeaderTypeDef   TxHeader;
-    uint8_t               txData[8];
-    uint32_t              txMailbox;
-    char                  uartBuf[128];
-    int                   len;
-
-    /* ==================== CAN1 发送 ==================== */
-    TxHeader.StdId = 0x123;                 /* CAN1 标准ID: 0x123 */
-    TxHeader.ExtId = 0;
-    TxHeader.IDE = CAN_ID_STD;              /* 标准帧 */
-    TxHeader.RTR = CAN_RTR_DATA;            /* 数据帧 */
-    TxHeader.DLC = 8;                       /* 数据长度: 8字节 */
-    TxHeader.TransmitGlobalTime = DISABLE;
-
-    /* CAN1 数据: [counter, counter+1, ... counter+7] */
-    for (uint8_t i = 0; i < 8; i++)
-    {
-        txData[i] = can_test_tx_counter + i;
-    }
-
-    /* 打印 CAN1 即将发送的数据 (主循环上下文) */
-    len = snprintf(uartBuf, sizeof(uartBuf),
-                   "--- CAN1 TX --- StdId=0x%03X DLC=%d Data: %02X %02X %02X %02X %02X %02X %02X %02X\r\n",
-                   TxHeader.StdId, TxHeader.DLC,
-                   txData[0], txData[1], txData[2], txData[3],
-                   txData[4], txData[5], txData[6], txData[7]);
-    if (len > 0)
-    {
-        UART1_Send((uint8_t *)uartBuf, (uint16_t)len);
-    }
-
-    /* CAN1: 投入发送邮箱 */
-    if (HAL_CAN_AddTxMessage(&hcan1, &TxHeader, txData, &txMailbox) != HAL_OK)
-    {
-        char errMsg[] = "--- CAN1 TX --- ERROR: AddTxMessage failed!\r\n";
-        UART1_Send((uint8_t *)errMsg, sizeof(errMsg) - 1);
-    }
-
-    /* ==================== CAN2 发送 ==================== */
-    TxHeader.StdId = 0x456;                 /* CAN2 标准ID: 0x456 (与CAN1不同,便于区分) */
-    /* IDE, RTR, DLC, TransmitGlobalTime 不变 */
-
-    /* CAN2 数据: [counter+0x80, counter+0x81, ... counter+0x87] (高位置位,便于区分) */
-    for (uint8_t i = 0; i < 8; i++)
-    {
-        txData[i] = can_test_tx_counter + 0x80U + i;
-    }
-
-    /* 打印 CAN2 即将发送的数据 (主循环上下文) */
-    len = snprintf(uartBuf, sizeof(uartBuf),
-                   "--- CAN2 TX --- StdId=0x%03X DLC=%d Data: %02X %02X %02X %02X %02X %02X %02X %02X\r\n",
-                   TxHeader.StdId, TxHeader.DLC,
-                   txData[0], txData[1], txData[2], txData[3],
-                   txData[4], txData[5], txData[6], txData[7]);
-    if (len > 0)
-    {
-        UART1_Send((uint8_t *)uartBuf, (uint16_t)len);
-    }
-
-    /* CAN2: 投入发送邮箱 */
-    if (HAL_CAN_AddTxMessage(&hcan2, &TxHeader, txData, &txMailbox) != HAL_OK)
-    {
-        char errMsg[] = "--- CAN2 TX --- ERROR: AddTxMessage failed!\r\n";
-        UART1_Send((uint8_t *)errMsg, sizeof(errMsg) - 1);
-    }
-
-    /* 发送计数器自增 (CAN1和CAN2共用, 便于对比) */
-    can_test_tx_counter++;
-}
-
-/* ========================== HAL CAN 回调函数 ========================== */
-
-/**
-  * @brief  CAN RX FIFO0 消息挂起回调 (中断上下文)
-  *         当FIFO0中有新消息时由 HAL_CAN_IRQHandler 调用
+  * @brief  CAN标准帧发送
   * @param  hcan: CAN句柄指针
-  * @retval None
+  * @param  StdId: 标准帧ID (11位)
+  * @param  pData: 发送数据缓冲区
+  * @param  DLC: 数据长度
+  * @retval HAL状态
+  */
+HAL_StatusTypeDef CAN_SendMessage(CAN_HandleTypeDef *hcan, uint32_t StdId, uint8_t *pData, uint8_t DLC)
+{
+    CAN_TxHeaderTypeDef h = {0};
+    uint32_t m;
+    h.StdId = StdId; h.IDE = CAN_ID_STD; h.RTR = CAN_RTR_DATA; h.DLC = DLC;
+    return HAL_CAN_AddTxMessage(hcan, &h, pData, &m);
+}
+
+/**
+  * @brief  通过CAN1发送VCU整车状态信息
+  * @note   报文ID: 0x011, DLC: 8
+  *         Byte0: VCU状态[3:0] + 档位[7:6]
+  *         Byte1: 刹车状态 (>10%置1)
+  *         Byte2: 油门开度 (0~100)
+  *         Byte3: 车速 (km/h)
+  *         Byte4-5: 转向角度 (×10, 有符号16位)
+  */
+void CAN_SendVCUInfo(const vehicle_sensors_t *s, vcu_state_t vcu, gear_state_t g, uint8_t spd)
+{
+    uint8_t d[8] = {0};
+    d[0] = ((uint8_t)vcu & 0x0F) | (((uint8_t)g << 6) & 0xC0);
+    d[1] = (s->brake > 10.0f) ? 1U : 0U;
+    d[2] = (uint8_t)(s->throttle + 0.5f); if (d[2] > 100) d[2] = 100;
+    d[3] = spd;
+    int16_t sr = (int16_t)(s->steering_angle * 10.0f);
+    d[4] = (uint8_t)(sr & 0xFF); d[5] = (uint8_t)((sr >> 8) & 0xFF);
+    CAN_SendMessage(&hcan1, 0x011U, d, 8);
+}
+
+/**
+  * @brief  CAN FIFO0接收中断回调
+  * @note   仅处理CAN2的电机转速报文 (ID:0x01左电机, 0x02右电机)
+  *         报文格式: Byte0=0x0F, Byte1=0x01, Byte2~5=ERPM(有符号32位)
   */
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 {
-    CAN_RxHeaderTypeDef RxHeader;
-    uint8_t             rxData[8];
-    char                uartBuf[128];
-    int                 len;
-    const char         *canName;
-
-    /* 从FIFO0读取接收到的报文 */
-    if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &RxHeader, rxData) != HAL_OK)
-    {
-        return;
-    }
-
-    /* 区分CAN1 / CAN2 */
-    canName = (hcan->Instance == CAN1) ? "CAN1" : "CAN2";
-
-    /* 格式化并打印接收到的数据 (中断上下文) */
-    len = snprintf(uartBuf, sizeof(uartBuf),
-                   "--- %s RX --- StdId=0x%03X DLC=%d Data: %02X %02X %02X %02X %02X %02X %02X %02X\r\n",
-                   canName, RxHeader.StdId, RxHeader.DLC,
-                   rxData[0], rxData[1], rxData[2], rxData[3],
-                   rxData[4], rxData[5], rxData[6], rxData[7]);
-    if (len > 0)
-    {
-        UART1_Send((uint8_t *)uartBuf, (uint16_t)len);
+    CAN_RxHeaderTypeDef h; uint8_t d[8];
+    if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &h, d) != HAL_OK) return;
+    if (hcan->Instance == CAN2) {
+        if ((h.StdId == 0x01U || h.StdId == 0x02U) && h.DLC == 6 && d[0] == 0x0FU && d[1] == 0x01U) {
+            int32_t erpm = (int32_t)(((uint32_t)d[2] << 24) | ((uint32_t)d[3] << 16) | ((uint32_t)d[4] << 8) | d[5]);
+            int16_t rpm = (int16_t)(erpm / DMCU_MOTOR_POLE_PAIRS);
+            uint32_t mid = (h.StdId == 0x01U) ? DMCU_LEFT_RPM_ID : DMCU_RIGHT_RPM_ID;
+            DMCU_UpdateRPM(mid, rpm);
+        }
     }
 }
 
-/**
-  * @brief  CAN RX FIFO1 消息挂起回调 (预留)
-  * @param  hcan: CAN句柄指针
-  * @retval None
-  */
+/* CAN FIFO1接收回调 (暂时仅读取清空, 不做处理) */
 void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan)
-{
-    CAN_RxHeaderTypeDef RxHeader;
-    uint8_t             rxData[8];
-    char                uartBuf[128];
-    int                 len;
-    const char         *canName;
+{ CAN_RxHeaderTypeDef h; uint8_t d[8]; HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO1, &h, d); }
 
-    if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO1, &RxHeader, rxData) != HAL_OK)
-    {
-        return;
-    }
-
-    canName = (hcan->Instance == CAN1) ? "CAN1" : "CAN2";
-
-    len = snprintf(uartBuf, sizeof(uartBuf),
-                   "--- %s RX-FIFO1 --- StdId=0x%03X DLC=%d Data: %02X %02X %02X %02X %02X %02X %02X %02X\r\n",
-                   canName, RxHeader.StdId, RxHeader.DLC,
-                   rxData[0], rxData[1], rxData[2], rxData[3],
-                   rxData[4], rxData[5], rxData[6], rxData[7]);
-    if (len > 0)
-    {
-        UART1_Send((uint8_t *)uartBuf, (uint16_t)len);
-    }
-}
-
-/**
-  * @brief  CAN 发送邮箱0完成回调 (中断上下文)
-  * @param  hcan: CAN句柄指针
-  * @retval None
-  */
-void HAL_CAN_TxMailbox0CompleteCallback(CAN_HandleTypeDef *hcan)
-{
-    const char *canName = (hcan->Instance == CAN1) ? "CAN1" : "CAN2";
-    char msg[64];
-    int len = snprintf(msg, sizeof(msg), "--- %s TX --- Mailbox0 complete\r\n", canName);
-    if (len > 0)
-    {
-        UART1_Send((uint8_t *)msg, (uint16_t)len);
-    }
-}
-
-/**
-  * @brief  CAN 发送邮箱1完成回调
-  * @param  hcan: CAN句柄指针
-  * @retval None
-  */
-void HAL_CAN_TxMailbox1CompleteCallback(CAN_HandleTypeDef *hcan)
-{
-    const char *canName = (hcan->Instance == CAN1) ? "CAN1" : "CAN2";
-    char msg[64];
-    int len = snprintf(msg, sizeof(msg), "--- %s TX --- Mailbox1 complete\r\n", canName);
-    if (len > 0)
-    {
-        UART1_Send((uint8_t *)msg, (uint16_t)len);
-    }
-}
-
-/**
-  * @brief  CAN 发送邮箱2完成回调
-  * @param  hcan: CAN句柄指针
-  * @retval None
-  */
-void HAL_CAN_TxMailbox2CompleteCallback(CAN_HandleTypeDef *hcan)
-{
-    const char *canName = (hcan->Instance == CAN1) ? "CAN1" : "CAN2";
-    char msg[64];
-    int len = snprintf(msg, sizeof(msg), "--- %s TX --- Mailbox2 complete\r\n", canName);
-    if (len > 0)
-    {
-        UART1_Send((uint8_t *)msg, (uint16_t)len);
-    }
-}
-
-/**
-  * @brief  CAN 错误回调 (中断上下文)
-  * @param  hcan: CAN句柄指针
-  * @retval None
-  */
-void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan)
-{
-    const char *canName = (hcan->Instance == CAN1) ? "CAN1" : "CAN2";
-    uint32_t error = HAL_CAN_GetError(hcan);
-    char msg[80];
-    int len = snprintf(msg, sizeof(msg), "--- %s ERR --- Error Code: 0x%08lX\r\n", canName, error);
-    if (len > 0)
-    {
-        UART1_Send((uint8_t *)msg, (uint16_t)len);
-    }
-    HAL_CAN_ResetError(hcan);
-}
-
-/* USER CODE END 1 */
+/* CAN错误回调: 自动清除错误标志以恢复总线通信 */
+void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan) { HAL_CAN_ResetError(hcan); }

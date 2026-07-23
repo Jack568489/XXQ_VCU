@@ -29,6 +29,7 @@
 /* USER CODE BEGIN Includes */
 #include "tick.h"
 #include "vehicle.h"
+#include "dmcu.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -102,7 +103,8 @@ int main(void)
   tick_init();              /* 启动1ms时基 */
   ADC_StartDMA();           /* 启动ADC DMA连续采样 */
   Vehicle_Init();           /* 整车控制初始化 (执行器置安全状态) */
-  CAN_TestInit();           /* CAN环回测试初始化 (滤波器+启动+中断使能) */
+  CAN_Init();               /* CAN初始化 (滤波器+启动+中断使能) */
+  DMCU_Init();              /* 双电机控制初始化 */
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -112,36 +114,53 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    /*=================================================================
-     * 传感器数据处�? (每次循环更新, 转换原始�?->物理�?)
-     *=================================================================*/
+    /* 连续任务: ADC传感器数据处理 */
     ADC_ProcessSensorData(NULL);
 
-    /*=================================================================
-     * 500ms 周期任务
-     *=================================================================*/
+    /* ---- 10ms周期: 电机控制指令发送 ---- */
+    if (time_flag.bit_field.time_10ms_flag)
+    {
+        time_flag.bit_field.time_10ms_flag = 0;
+        DMCU_SendCurrentCmd();
+    }
+
+    /* ---- 100ms周期: 电机状态查询 + VCU状态机 ---- */
+    if (time_flag.bit_field.time_100ms_flag)
+    {
+        time_flag.bit_field.time_100ms_flag = 0;
+        DMCU_QuerySpeed();          /* 查询电机转速 */
+        DMCU_Heartbeat();           /* 电机心跳维持 */
+        Vehicle_StateMachine();     /* VCU状态机更新 */
+    }
+
+    /* ---- 200ms周期: 油门信号处理 ---- */
+    if (time_flag.bit_field.time_200ms_flag)
+    {
+        time_flag.bit_field.time_200ms_flag = 0;
+        DMCU_ThrottleProcess();     /* 油门扭矩分配计算 */
+    }
+
+    /* ---- 500ms周期: LED闪烁 + CAN数据上报 ---- */
     if (time_flag.bit_field.time_500ms_flag)
     {
         time_flag.bit_field.time_500ms_flag = 0;
-        Vehicle_LED1_Blink();           /* LED1 1Hz闪烁 */
+        Vehicle_LED1_Blink();       /* LED1心跳闪烁 */
+        CAN_SendVCUInfo(ADC_GetSensorHandle(), Vehicle_GetVCUState(),
+                        Vehicle_GetGearState(), DMCU_GetVehicleSpeed());
+        DMCU_SendRPM();             /* 发送电机转速指令 */
     }
 
-    /*=================================================================
-     * 1000ms 周期任务
-     *=================================================================*/
+    /* ---- 1000ms周期: 档位计时 + 串口传感器打印 ---- */
     if (time_flag.bit_field.time_1000ms_flag)
     {
         time_flag.bit_field.time_1000ms_flag = 0;
-        Vehicle_GearTick();             /* 档位状态机计时 (蜂鸣器超时) */
-        Vehicle_SensorReport();         /* UART遥测上报 */
-        CAN_TestSendMessage();          /* CAN环回测试: 每秒发送一帧并自收验证 */
+        Vehicle_GearTick();         /* 档位蜂鸣器计时 */
+        Vehicle_SensorReport();     /* 传感器数据串口打印 */
     }
 
-    /*=================================================================
-     * 连续任务 (每次循环执行)
-     *=================================================================*/
-    Vehicle_GearShiftCheck();           /* 档位切换检测 (P→D) */
-    Vehicle_BrakeLightCheck();          /* 制动灯控制 (踏板检测) */
+    /* ---- 连续任务: 档位/制动灯检测 (每次循环执行) ---- */
+    Vehicle_GearShiftCheck();       /* 档位切换检测 */
+    Vehicle_BrakeLightCheck();      /* 制动灯控制 */
   }
   /* USER CODE END 3 */
 }

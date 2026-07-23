@@ -2,7 +2,6 @@
   ******************************************************************************
   * @file    vehicle.h
   * @brief   整车控制函数头文件
-  * @note    包含LED指示灯、档位切换、制动灯/蜂鸣器、UART遥测上报等任务
   ******************************************************************************
   */
 #ifndef __VEHICLE_H__
@@ -12,12 +11,8 @@
 extern "C" {
 #endif
 
-/* Includes ------------------------------------------------------------------*/
 #include "main.h"
 
-/*------------------------------------------------------------------------------
- * 硬件操作宏定义
- *------------------------------------------------------------------------------*/
 /* LED1控制: 低电平有效 */
 #define LED1_ON()               HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_RESET)
 #define LED1_OFF()              HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_SET)
@@ -30,52 +25,27 @@ extern "C" {
 #define BRAKE_LIGHT_ON()        HAL_GPIO_WritePin(LAMP_GPIO_Port, LAMP_Pin, GPIO_PIN_RESET)
 #define BRAKE_LIGHT_OFF()       HAL_GPIO_WritePin(LAMP_GPIO_Port, LAMP_Pin, GPIO_PIN_SET)
 
-/* 档位开关读取: 闭合(低电平)返回1, 断开(高电平)返回0 */
+/* 档位开关读取: 闭合(低电平)返回1 */
 #define GET_GEAR_SWITCH()       ((HAL_GPIO_ReadPin(TS_ACT_DET_GPIO_Port, \
                                     TS_ACT_DET_Pin) == GPIO_PIN_RESET) ? 1U : 0U)
+/* 外部TS激活开关: PE2高电平=激活 */
+#define GET_EXT_TS_SWITCH()    ((HAL_GPIO_ReadPin(TS_ACT_EXT_DET_GPIO_Port, \
+                                    TS_ACT_EXT_DET_Pin) == GPIO_PIN_SET) ? 1U : 0U)
 
-/*------------------------------------------------------------------------------
- * 档位状态枚举
- *------------------------------------------------------------------------------*/
+typedef enum { GEAR_STATE_P = 0, GEAR_STATE_D = 1 } gear_state_t;
 typedef enum {
-    GEAR_STATE_P = 0,   /* P档: 驻车状态                         */
-    GEAR_STATE_D = 1    /* D档: 驾驶状态 (LAMP点亮, 蜂鸣器确认音) */
-} gear_state_t;
-
-/*------------------------------------------------------------------------------
- * 函数原型
- *------------------------------------------------------------------------------*/
+    VCU_POWERON_MODE = 0, VCU_LV_SELF_CHECK = 1, VCU_HV_SELF_CHECK = 2,
+    VCU_READY = 3, VCU_DRIVING = 4
+} vcu_state_t;
 
 void Vehicle_Init(void);
 void Vehicle_LED1_Blink(void);
-
-/**
-  * @brief  档位切换检测 (主循环每次迭代调用)
-  * @note   严格时序要求: 必须先踩下制动踏板(brake>10%),
-  *         保持刹车的同时按下档位开关才能进入D档.
-  *         松开刹车后需重新执行上述序列.
-  */
 void Vehicle_GearShiftCheck(void);
-
-/**
-  * @brief  制动灯控制 (主循环每次迭代调用)
-  * @note   踩下制动踏板(brake > 5%)点亮制动灯,
-  *         松开(brake < 2%)熄灭, 滞回区间防抖
-  */
 void Vehicle_BrakeLightCheck(void);
-
-/**
-  * @brief  档位状态机计时 (每秒调用一次)
-  * @note   进入D档后蜂鸣器持续3秒自动关闭
-  */
 void Vehicle_GearTick(void);
-
-/**
-  * @brief  获取当前档位状态
-  * @retval gear_state_t: GEAR_STATE_P 或 GEAR_STATE_D
-  */
 gear_state_t Vehicle_GetGearState(void);
-
+void Vehicle_StateMachine(void);
+vcu_state_t Vehicle_GetVCUState(void);
 void Vehicle_SensorReport(void);
 
 #ifdef __cplusplus
